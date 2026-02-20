@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1
+      KAFKA_MIN_INSYNC_REPLICAS: 1
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    depends_on: [zookeeper]
+    ports:
+      - "9092:9092"
+
+  # ------------------------------
+  # MONGO SHARDING CLUSTER
+  # ------------------------------
+  mongo-config:
+    image: mongo:6
+    command: mongod --configsvr --replSet configReplSet --port 27019
+    ports:
+      - "27019:27019"
+
+  mongo-shard1:
+    image: mongo:6
+    command: mongod --shardsvr --replSet shard1 --port 27018
+    ports:
+      - "27018:27018"
+
+  mongo-shard2:
+    image: mongo:6
+    command: mongod --shardsvr --replSet shard2 --port 27020
+    ports:
+      - "27020:27020"
+
+  mongo-router:
+    image: mongo:6
+    command: mongos --configdb configReplSet/mongo-config:27019 --bind_ip_all
+    depends_on:
+      - mongo-config
+      - mongo-shard1
+      - mongo-shard2
+    ports:
+      - "27021:27017"
+
+  # ------------------------------
+  # APPLICATION SERVICES
+  # ------------------------------
+  api:
+    build: ./api
+    depends_on: [mongo-router, redis, kafka]
+    ports:
+      - "5002:5002"
+
+  updater:
+    build: ./updater
+    depends_on: [mongo-router, redis, kafka]
+
+  seeder:
+    build: ./seeder
+    depends_on: [kafka]
+
+  ml:
+    build: ./ml
+
+  frontend:
+    build: ./frontend
+    depends_on: [api]
+    ports:
+      - "8080:80"

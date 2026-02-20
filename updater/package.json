@@ -1,0 +1,10 @@
+{
+  "name": "leaderboard-updater",
+  "version": "1.0.0",
+  "main": "consumer.js",
+  "dependencies": {
+    "kafkajs": "^2.2.4",
+    "redis": "^4.6.7",
+    "mongoose": "^8.0.0"
+  }
+}

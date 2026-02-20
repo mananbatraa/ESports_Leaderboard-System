@@ -1,0 +1,11 @@
+{
+  "name": "leaderboard-api",
+  "version": "1.0.0",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "redis": "^4.6.7",
+    "mongoose": "^8.0.0",
+    "cors": "^2.8.5"
+  }
+}
